@@ -25,13 +25,4 @@ class MemberRepositoryV0Test {
         log.info("member != findMember {}", member==findMember);
         Assertions.assertThat(findMember).isEqualTo(member);
     }
-
-
-    public void update(String memberId, int money) {
-        String sql = "update member set money=? where member_id=?";
-
-        Connection con = null;
-        PreparedStatement pstmt = null;
-
-    }
 }
