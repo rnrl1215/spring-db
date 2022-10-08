@@ -1,6 +1,7 @@
 package hello.jdbc.repository;
 
 import hello.jdbc.domain.Member;
+import hello.jdbc.repository.ex.MyDbException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.jdbc.support.JdbcUtils;
@@ -10,20 +11,21 @@ import java.sql.*;
 import java.util.NoSuchElementException;
 
 /**
- * 트랜잭션 - 트랜잭션 매니저
- * DataSourceUtils.ge4tConnection()
- * DataSourceUtils.releaseConnection()
+ * 예외 누수 문제 해결
+ * 체크 예외를 런타임 예외로 변경
+ * MemberRepository
  */
 @Slf4j
-public class MemberRepositoryV3 implements MemberRepositoryEx{
+public class MemberRepositoryV4_1 implements MemberRepository{
 
     private final DataSource dataSource;
 
-    public MemberRepositoryV3(DataSource dataSource) {
+    public MemberRepositoryV4_1(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
-    public Member save(Member member) throws SQLException {
+    @Override
+    public Member save(Member member) {
         String sql = "insert into member(member_id, money) values (?, ?)";
 
         Connection con = null;
@@ -37,15 +39,15 @@ public class MemberRepositoryV3 implements MemberRepositoryEx{
             pstmt.executeUpdate();
             return member;
         } catch (SQLException e) {
-            log.error("db error", e);
-            throw e;
+            throw new MyDbException(e);
         } finally {
             close(con, pstmt, null);
         }
 
     }
 
-    public Member findById(String memberId) throws SQLException {
+    @Override
+    public Member findById(String memberId) {
         String sql = "select * from member where member_id = ?";
 
         Connection con = null;
@@ -68,51 +70,15 @@ public class MemberRepositoryV3 implements MemberRepositoryEx{
             }
 
         } catch (SQLException e) {
-            log.error("db error", e);
-            throw e;
+            throw new MyDbException(e);
         } finally {
             close(con, pstmt, rs);
         }
 
     }
 
-
-    public Member findById(Connection con, String memberId) throws SQLException {
-        String sql = "select * from member where member_id = ?";
-
-        //Connection con = null;
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-
-        try {
-            //con = getConnection();
-            pstmt = con.prepareStatement(sql);
-            pstmt.setString(1, memberId);
-
-            rs = pstmt.executeQuery();
-            if (rs.next()) {
-                Member member = new Member();
-                member.setMemberId(rs.getString("member_id"));
-                member.setMoney(rs.getInt("money"));
-                return member;
-            } else {
-                throw new NoSuchElementException("member not found memberId=" + memberId);
-            }
-
-        } catch (SQLException e) {
-            log.error("db error", e);
-            throw e;
-        } finally {
-            JdbcUtils.closeResultSet(rs);
-            JdbcUtils.closeStatement(pstmt);
-            //JdbcUtils.closeConnection(con); 커넥션을 닫으면 안된다 트랜잭션이 끝나버린다.
-                                             // 서비스에서 종료 시켜야 한다.
-        }
-
-    }
-
-
-    public void update(String memberId, int money) throws SQLException {
+    @Override
+    public void update(String memberId, int money){
         String sql = "update member set money=? where member_id=?";
 
         Connection con = null;
@@ -126,39 +92,15 @@ public class MemberRepositoryV3 implements MemberRepositoryEx{
             int resultSize = pstmt.executeUpdate();
             log.info("resultSize={}", resultSize);
         } catch (SQLException e) {
-            log.error("db error", e);
-            throw e;
+            throw new MyDbException(e);
         } finally {
             close(con, pstmt, null);
         }
 
     }
 
-    public void update(Connection con , String memberId, int money) throws SQLException {
-        String sql = "update member set money=? where member_id=?";
-
-        PreparedStatement pstmt = null;
-
-        try {
-            //con = getConnection();
-            pstmt = con.prepareStatement(sql);
-            pstmt.setInt(1, money);
-            pstmt.setString(2, memberId);
-            int resultSize = pstmt.executeUpdate();
-            log.info("resultSize={}", resultSize);
-        } catch (SQLException e) {
-            log.error("db error", e);
-            throw e;
-        } finally {
-            JdbcUtils.closeStatement(pstmt);
-            //JdbcUtils.closeConnection(con); 커넥션을 닫으면 안된다 트랜잭션이 끝나버린다.
-            // 서비스에서 종료 시켜야 한다.
-        }
-
-    }
-
-
-    public void delete(String memberId) throws SQLException {
+    @Override
+    public void delete(String memberId) {
         String sql = "delete from member where member_id=?";
 
         Connection con = null;
@@ -171,7 +113,7 @@ public class MemberRepositoryV3 implements MemberRepositoryEx{
             pstmt.executeUpdate();
         } catch (SQLException e) {
             log.error("db error", e);
-            throw e;
+            throw new MyDbException(e);
         } finally {
             close(con, pstmt, null);
         }
