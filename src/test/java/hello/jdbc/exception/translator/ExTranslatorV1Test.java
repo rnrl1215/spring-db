@@ -85,6 +85,7 @@ public class ExTranslatorV1Test {
             } catch (SQLException e) {
                 //h2 db
                 if (e.getErrorCode() == 23505) {
+                    log.info("Occur error!!!!!! + {}" + e.getMessage());
                     throw new MyDuplicateKeyException(e);
                 }
                 throw new MyDuplicateKeyException(e);
